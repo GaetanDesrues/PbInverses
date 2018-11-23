@@ -1,0 +1,44 @@
+verbosity = 0;
+
+cout << endl << " ------- Probleme de Laplace -------" << endl;
+cout << " Resolution de -Laplacien(u) = f avec u = 0 au bord" << endl;
+cout << "# sur le carre [0,1]x[0,1] en elements finis P2 Lagrange" << endl;
+
+// Définition des bord du domaine de calcul
+int n = 100;
+border Gamma1(t=0,1) {x=t; y=0;};
+border Gamma2(t=0,1) {x=1; y=t;};
+border Gamma3(t=0,1) {x=1-t; y=1;};
+border Gamma4(t=0,1) {x=0; y=1-t;};
+mesh Th = buildmesh(Gamma1(n)+Gamma2(n)+Gamma3(n)+Gamma4(n));
+
+// Définition de l'espace de discrétisation et des variables associées
+fespace Vh(Th,P1);
+Vh u,v;
+func f = x*(x-1)*(x-0.5)*y*(y-1)*(y-0.5);
+
+// Definition d'une macro
+macro grad(u) [dx(u),dy(u)]                 //
+
+problem laplace(u,v,solver=UMFPACK) =
+  int2d(Th)( grad(u)'*grad(v) )             // '
+- int2d(Th)( f*v )
++ on(Gamma1,Gamma2,Gamma3,Gamma4,u=0);
+
+// Résolution du système linéaire
+laplace;
+
+plot(u,value=1, fill=1);
+
+// Trace de la solution dans un fichier
+{
+  ofstream file("sol.dat");
+  for(int i=0;i<Th.nt;i++)
+  {
+    for (int j=0; j<3; j++)
+    {
+      file << Th[i][j].x << " " << Th[i][j].y << " " << u[][Vh(i,j)] << endl;
+    }
+    file << Th[i][0].x << " " << Th[i][0].y << " " << u[][Vh(i,0)] <<" \n\n\n";
+  }
+}

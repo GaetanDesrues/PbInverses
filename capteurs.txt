@@ -1,0 +1,11 @@
+Nombre de capteurs suivant x : 3
+Nombre de capteurs suivant y : 3
+0.0474021
+0.0643647
+0.0546871
+0.0714734
+0.0961978
+0.0800121
+0.0668237
+0.0871379
+0.0741004

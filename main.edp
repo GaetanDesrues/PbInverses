@@ -1,4 +1,4 @@
-// verbosity = 0;
+verbosity = 0;
 
 cout << endl << " ------- Probleme de Laplace -------" << endl;
 cout << " Resolution de -Laplacien(u) = f avec u = 0 au bord" << endl;
@@ -24,7 +24,10 @@ K0 = 1;
 K1 = [1,1];
 K2 = [[1,0], [0,1]];
 
-func f = K0 + K1(0)*x+K1(1)*y + x*(x*K2(0,0)+y*K2(0,1)) + y*(x*K2(1,0)+y*K2(1,1));
+real x0 = 0.2;
+real y0 = 0.7;
+func f = K0 + K1(0)*(x-x0)+K1(1)*(y-y0) + (x-x0)*((x-x0)*K2(0,0)+(y-y0)*K2(0,1))
+ + (y-y0)*((x-x0)*K2(1,0)+(y-y0)*K2(1,1));
 
 // Definition d'une macro
 macro grad(u) [dx(u),dy(u)]                 //
@@ -37,7 +40,7 @@ problem laplace(u,v,solver=UMFPACK) =
 // Résolution du système linéaire
 laplace;
 
-plot(u, value=1, fill=1);
+// plot(u, value=1, fill=1);
 
 int nbCapteursX, nbCapteursY;
 nbCapteursX = 3; // Nombre de capteurs (aucun sur les bords)
@@ -58,10 +61,14 @@ for (int i=0; i<nbCapteursX; ++i)
   }
 }
 
-// for (int i=0; i<nbCapteursX*nbCapteursY; ++i)
-// {
-//   cout << i << " " << um(i) << endl;
-// }
+// Trace les um dans un fichier capteurs.txt
+ofstream cap("capteurs.txt");
+cap << "Nombre de capteurs suivant x : " << nbCapteursX << endl;
+cap << "Nombre de capteurs suivant y : " << nbCapteursY << endl;
+for (int i=0; i<nbCapteursX*nbCapteursY; ++i)
+{
+  cap << um(i) << endl;
+}
 
 
 

@@ -1,5 +1,8 @@
+FF = FreeFem++
+
+
 all :
-	freefem++ -v 0 main.edp
+	$(FF) -v 0 main.edp
 
 sens :
-	freefem++ -v 0 sensibility.edp
+	$(FF) -v 0 sensibility.edp

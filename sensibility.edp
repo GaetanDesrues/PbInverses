@@ -5,6 +5,7 @@ verbosity = 0;
 // cout << "# sur le carre [0,1]x[0,1] en elements finis P2 Lagrange" << endl;
 //Convergeance
 real eps = 0.001;
+real errx, erry;
 // Définition des bord du domaine de calcul
 int n = 100;
 border Gamma1(t=0,1) {x=t; y=0;};
@@ -99,6 +100,23 @@ for (int i=0; i<10; ++i)
     // Résolution du système linéaire
     laplace2;
 
+    errx = 0;
+    erry = 0;
+    for (int j=0; j<nbCapteursX*nbCapteursY; ++j)
+    {
+      errx = errx + (u(int(j/nbCapteursX), j%nbCapteursX) - um(j));
+      erry = erry + (u(int(j/nbCapteursX), j%nbCapteursX) - um(j));
+    }
+    errx=errx*ux;
+    erry=erry*uy;
+    if (sqrt(errx*errx + erry*erry) < eps)
+      break;
+    else
+      {
+        xx0 -= 0.0001*errx;
+        yy0 -= 0.0001*erry;
+      }
+    cout << errx << " " << erry << endl; 
   }
 
 // Trace les um dans un fichier capteurs.txt

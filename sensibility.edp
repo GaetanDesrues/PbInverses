@@ -1,0 +1,127 @@
+verbosity = 0;
+
+// cout << endl << " ------- Probleme de Laplace -------" << endl;
+// cout << " Resolution de -Laplacien(u) = f avec u = 0 au bord" << endl;
+// cout << "# sur le carre [0,1]x[0,1] en elements finis P2 Lagrange" << endl;
+//Convergeance
+real eps = 0.001;
+// Définition des bord du domaine de calcul
+int n = 100;
+border Gamma1(t=0,1) {x=t; y=0;};
+border Gamma2(t=0,1) {x=1; y=t;};
+border Gamma3(t=0,1) {x=1-t; y=1;};
+border Gamma4(t=0,1) {x=0; y=1-t;};
+mesh Th = buildmesh(Gamma1(n)+Gamma2(n)+Gamma3(n)+Gamma4(n));
+
+// Définition de l'espace de discrétisation et des variables associées
+fespace Vh(Th,P1);
+Vh u,v;
+Vh ux,uy;
+
+// Définition du second membre
+real K0;
+real[int] K1(2);
+real[int, int] K2(2,2);
+
+K0 = 1;
+K1 = [1,1];
+K2 = [[1,0], [0,1]];
+
+real x0 = 0.2;
+real y0 = 0.7;
+real xx0, yy0;
+
+func g = K0 + K1(0)*(x-x0)+K1(1)*(y-y0) + (x-x0)*((x-x0)*K2(0,0)+(y-y0)*K2(0,1))
+ + (y-y0)*((x-x0)*K2(1,0)+(y-y0)*K2(1,1));
+func gg = K0 + K1(0)*(x-xx0)+K1(1)*(y-yy0) + (x-xx0)*((x-xx0)*K2(0,0)+(y-yy0)*K2(0,1))
+  + (y-yy0)*((x-xx0)*K2(1,0)+(y-yy0)*K2(1,1));
+func dgx = -K1(0) - 2*(x-xx0)*K2(0,0) - (y-yy0)*K2(0,1) - (y-yy0)*K2(1,0);
+func dgy = -K1(1) - 2*(y-yy0)*K2(1,1) - (x-xx0)*K2(1,0) - (x-xx0)*K2(0,1);
+
+// Definition d'une macro
+macro grad(u) [dx(u),dy(u)]                 //
+
+problem laplace(u,v,solver=UMFPACK) =
+  int2d(Th)( grad(u)'*grad(v) )             // '
+- int2d(Th)( g*v )
++ on(Gamma1,Gamma2,Gamma3,Gamma4,u=0);
+
+// Résolution du système linéaire
+laplace;
+
+// plot(u, value=1, fill=1);
+
+
+// Récupération des valeurs aux points des capteurs
+int nbCapteursX, nbCapteursY;
+nbCapteursX = 3; // Nombre de capteurs (aucun sur les bords)
+nbCapteursY = 3;
+
+real pasX, pasY;
+pasX = 1./(nbCapteursX+1); // Distance entre les capteurs
+pasY = 1./(nbCapteursY+1);
+
+real[int] um(nbCapteursX*nbCapteursY); // Valeur de la solution sur les capteurs
+
+for (int i=0; i<nbCapteursX; ++i)
+{
+  for (int j=0; j<nbCapteursY; ++j)
+  {
+    um(i*nbCapteursX + j) = u((i+1)*pasX, (j+1)*pasY);
+    // cout << "la : " << (i+1)*pasX << " " << (j+1)*pasY << endl;
+  }
+}
+
+//Sensibility
+for (int i=0; i<10; ++i)
+  {
+    problem laplace(u,v,solver=UMFPACK) =
+      int2d(Th)( grad(u)'*grad(v) )             // '
+    - int2d(Th)( gg*v )
+    + on(Gamma1,Gamma2,Gamma3,Gamma4,u=0);
+
+    // Résolution du système linéaire
+    laplace;
+
+    problem laplace1(ux,v,solver=UMFPACK) =
+      int2d(Th)( grad(ux)'*grad(v) )             // '
+    - int2d(Th)( dgx*v )
+    + on(Gamma1,Gamma2,Gamma3,Gamma4,ux=0);
+
+    // Résolution du système linéaire
+    laplace1;
+
+    problem laplace2(uy,v,solver=UMFPACK) =
+      int2d(Th)( grad(uy)'*grad(v) )             // '
+    - int2d(Th)( dgy*v )
+    + on(Gamma1,Gamma2,Gamma3,Gamma4,uy=0);
+
+    // Résolution du système linéaire
+    laplace2;
+
+  }
+
+// Trace les um dans un fichier capteurs.txt
+ofstream cap("capteurs.txt");
+cap << "Nombre de capteurs suivant x : " << nbCapteursX << endl;
+cap << "Nombre de capteurs suivant y : " << nbCapteursY << endl;
+cap << "Sol depuis : x0 = (" << x0 << "," << y0 << ")" << endl << endl;
+for (int i=0; i<nbCapteursX*nbCapteursY; ++i)
+{
+  cap << (int(i/nbCapteursX)+1)*pasX << " " << (i%nbCapteursX+1)*pasY << " " << um(i) << endl;
+}
+
+
+
+// // Trace de la solution dans un fichier
+// {
+//   ofstream file("sol.dat");
+//   for(int i=0;i<Th.nt;i++)
+//   {
+//     for (int j=0; j<3; j++)
+//     {
+//       file << Th[i][j].x << " " << Th[i][j].y << " " << u[][Vh(i,j)] << endl;
+//     }
+//     file << Th[i][0].x << " " << Th[i][0].y << " " << u[][Vh(i,0)] <<" \n\n\n";
+//   }
+// }

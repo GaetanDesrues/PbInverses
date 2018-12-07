@@ -1,4 +1,5 @@
 verbosity = 0;
+load "iovtk";
 
 // cout << endl << " ------- Probleme de Laplace -------" << endl;
 // cout << " Resolution de -Laplacien(u) = f avec u = 0 au bord" << endl;
@@ -13,7 +14,7 @@ border Gamma3(t=0,1) {x=1-t; y=1;};
 border Gamma4(t=0,1) {x=0; y=1-t;};
 mesh Th = buildmesh(Gamma1(n)+Gamma2(n)+Gamma3(n)+Gamma4(n));
 
-// Définition de l'espace de discrétisation et des variables associées
+// Définition de l'espace de discrétisation set des variables associées
 fespace Vh(Th,P1);
 Vh u,v;
 Vh ux,uy;
@@ -23,16 +24,17 @@ real K0;
 real[int] K1(2);
 real[int, int] K2(2,2);
 
-K0 = 1;
-K1 = [1,1];
-K2 = [[1,0], [0,1]];
+K0 = -1;
+K1 = [3,20];
+K2 = [[0,0], [0,0]];
 
-real x0 = 0.2;
-real y0 = 0.7;
-real xx0(0.5), yy0(0.5);
+real x0 = 0.9;
+real y0 = 0.5;
+real xx0(0.1), yy0(0.1);
 
 func g = K0 + K1(0)*(x-x0)+K1(1)*(y-y0) + (x-x0)*((x-x0)*K2(0,0)+(y-y0)*K2(0,1))
 + (y-y0)*((x-x0)*K2(1,0)+(y-y0)*K2(1,1));
+
 func gg = K0 + K1(0)*(x-xx0)+K1(1)*(y-yy0) + (x-xx0)*((x-xx0)*K2(0,0)+(y-yy0)*K2(0,1))
 + (y-yy0)*((x-xx0)*K2(1,0)+(y-yy0)*K2(1,1));
 func dgx = -K1(0) - 2*(x-xx0)*K2(0,0) - (y-yy0)*K2(0,1) - (y-yy0)*K2(1,0);
@@ -49,13 +51,13 @@ int2d(Th)( grad(u)'*grad(v) )             // '
 // Résolution du système linéaire
 laplace;
 
-// plot(u, value=1, fill=1);
+//plot(u, value=1, fill=1);
 
 
 // Récupération des valeurs aux points des capteurs
 int nbCapteursX, nbCapteursY;
-nbCapteursX = 3; // Nombre de capteurs (aucun sur les bords)
-nbCapteursY = 3;
+nbCapteursX = 30; // Nombre de capteurs (aucun sur les bords)
+nbCapteursY = 30;
 
 real pasX, pasY;
 pasX = 1./(nbCapteursX+1); // Distance entre les capteurs
@@ -76,9 +78,9 @@ for (int i=0; i<nbCapteursX; ++i)
 errx = 10;
 erry = 10;
 int comp(0);
-real eps = 0.001;
+real eps = 0.0001;
 
-while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 50))
+while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 200))
 {
   ++comp;
   problem laplace(u,v,solver=UMFPACK) =
@@ -102,7 +104,7 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 50))
   - int2d(Th)( dgy*v )
   + on(Gamma1,Gamma2,Gamma3,Gamma4,uy=0);
 
-  // Résolution du système linéaire
+  // Résolution du système linéaire, wait=1
   laplace2;
 
   errx = 0;
@@ -119,13 +121,42 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 50))
     // cout << i << "  " << j << endl;
   }
 
-  xx0 -= 0.2 * errx;
-  yy0 -= 0.2 * erry;
+  xx0 -= 0.001 * errx;
+  yy0 -= 0.001 * erry;
 
-  cout << comp << "  " << errx << "  " << erry << endl;
+  cout << xx0 << " " << yy0 << endl;
+  // cout << comp << "  " << errx << "  " << erry << endl;
 
+  // plot(u, value=1, fill=1);
 }
-cout << xx0 << " " << yy0 << endl;
+
+problem laplace4(ux,v,solver=UMFPACK) =
+int2d(Th)( grad(ux)'*grad(v) )             // '
+- int2d(Th)( (K0 + K1(0)*(x-xx0)+K1(1)*(y-yy0))*v )
++ on(Gamma1,Gamma2,Gamma3,Gamma4,ux=0);
+
+// Résolution du système linéaire
+laplace4;
+
+problem laplace5(uy,v,solver=UMFPACK) =
+int2d(Th)( grad(uy)'*grad(v) )             // '
+- int2d(Th)( (K0 + K1(0)*(x-x0)+K1(1)*(y-y0))*v )
++ on(Gamma1,Gamma2,Gamma3,Gamma4,uy=0);
+
+// Résolution du système linéaire
+laplace5;
+
+u = abs(ux-uy);
+
+plot(u, value=1, fill=1, wait=1);
+
+savevtk("uth.vtk",Th,uy,dataname="uth");
+savevtk("ue.vtk",Th,ux,dataname="ue");
+
+u = g;
+plot(u, value=1, fill=1, wait=1);
+u = gg;
+plot(u, value=1, fill=1, wait=1);
 
 // Trace les um dans un fichier capteurs.txt
 ofstream cap("capteurs.txt");

@@ -6,3 +6,6 @@ all :
 
 sens :
 	$(FF) -v 0 sensibility.edp
+
+plot :
+	gnuplot -p "plot.gnu"

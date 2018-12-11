@@ -24,13 +24,14 @@ real K0;
 real[int] K1(2);
 real[int, int] K2(2,2);
 
-K0 = -1;
-K1 = [3,20];
+K0 = 1;
+K1 = [1,1];
 K2 = [[0,0], [0,0]];
 
 real x0 = 0.9;
 real y0 = 0.5;
-real xx0(0.1), yy0(0.1);
+cout << "Position initiale : " << x0 << " " << y0 << endl;
+real xx0(0.1), yy0(0.9);
 
 func g = K0 + K1(0)*(x-x0)+K1(1)*(y-y0) + (x-x0)*((x-x0)*K2(0,0)+(y-y0)*K2(0,1))
 + (y-y0)*((x-x0)*K2(1,0)+(y-y0)*K2(1,1));
@@ -121,42 +122,45 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 200))
     // cout << i << "  " << j << endl;
   }
 
-  xx0 -= 0.001 * errx;
-  yy0 -= 0.001 * erry;
+  xx0 -= 0.1 * errx;
+  yy0 -= 0.1 * erry;
 
-  cout << xx0 << " " << yy0 << endl;
+
+  cout << "Erreur : " << sqrt(pow(errx,2)+pow(erry,2)) << endl;
   // cout << comp << "  " << errx << "  " << erry << endl;
 
   // plot(u, value=1, fill=1);
 }
+cout << "Position predite : " << xx0 << " " << yy0 << endl;
 
-problem laplace4(ux,v,solver=UMFPACK) =
-int2d(Th)( grad(ux)'*grad(v) )             // '
-- int2d(Th)( (K0 + K1(0)*(x-xx0)+K1(1)*(y-yy0))*v )
-+ on(Gamma1,Gamma2,Gamma3,Gamma4,ux=0);
 
-// Résolution du système linéaire
-laplace4;
-
-problem laplace5(uy,v,solver=UMFPACK) =
-int2d(Th)( grad(uy)'*grad(v) )             // '
-- int2d(Th)( (K0 + K1(0)*(x-x0)+K1(1)*(y-y0))*v )
-+ on(Gamma1,Gamma2,Gamma3,Gamma4,uy=0);
-
-// Résolution du système linéaire
-laplace5;
-
-u = abs(ux-uy);
-
-plot(u, value=1, fill=1, wait=1);
-
-savevtk("uth.vtk",Th,uy,dataname="uth");
-savevtk("ue.vtk",Th,ux,dataname="ue");
-
-u = g;
-plot(u, value=1, fill=1, wait=1);
-u = gg;
-plot(u, value=1, fill=1, wait=1);
+// problem laplace4(ux,v,solver=UMFPACK) =
+// int2d(Th)( grad(ux)'*grad(v) )             // '
+// - int2d(Th)( (K0 + K1(0)*(x-xx0)+K1(1)*(y-yy0))*v )
+// + on(Gamma1,Gamma2,Gamma3,Gamma4,ux=0);
+//
+// // Résolution du système linéaire
+// laplace4;
+//
+// problem laplace5(uy,v,solver=UMFPACK) =
+// int2d(Th)( grad(uy)'*grad(v) )             // '
+// - int2d(Th)( (K0 + K1(0)*(x-x0)+K1(1)*(y-y0))*v )
+// + on(Gamma1,Gamma2,Gamma3,Gamma4,uy=0);
+//
+// // Résolution du système linéaire
+// laplace5;
+//
+// u = abs(ux-uy);
+//
+// plot(u, value=1, fill=1, wait=1);
+//
+// savevtk("uth.vtk",Th,uy,dataname="uth");
+// savevtk("ue.vtk",Th,ux,dataname="ue");
+//
+// u = g;
+// plot(u, value=1, fill=1, wait=1);
+// u = gg;
+// plot(u, value=1, fill=1, wait=1);
 
 // Trace les um dans un fichier capteurs.txt
 ofstream cap("capteurs.txt");

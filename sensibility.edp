@@ -1,70 +1,95 @@
+// ----------------- Probleme de Laplace -----------------
+// Resolution de -Laplacien(u) = f avec u = 0 au bord
+// sur le carre [0,1]x[0,1] en elements finis P1 Lagrange
+
 verbosity = 0;
 load "iovtk";
 
-// cout << endl << " ------- Probleme de Laplace -------" << endl;
-// cout << " Resolution de -Laplacien(u) = f avec u = 0 au bord" << endl;
-// cout << "# sur le carre [0,1]x[0,1] en elements finis P2 Lagrange" << endl;
-//Convergeance
-real errx, erry;
+// -------------------------------------------------------
+// Mise en place du probleme
+// -------------------------------------------------------
+// --- Parametres initiales (x0,y0) et finales (xx0,yy0)
+real x0 (0.9), y0 (0.5);
+real xx0(0.1), yy0(0.9);
+cout << endl << " Position initiale : x0 = " << x0 << " , y0 = " << y0 << endl;
+
 // Définition des bord du domaine de calcul
 int n = 100;
-border Gamma1(t=0,1) {x=t; y=0;};
-border Gamma2(t=0,1) {x=1; y=t;};
-border Gamma3(t=0,1) {x=1-t; y=1;};
-border Gamma4(t=0,1) {x=0; y=1-t;};
-mesh Th = buildmesh(Gamma1(n)+Gamma2(n)+Gamma3(n)+Gamma4(n));
+border G1(t=0,1) {x=t; y=0;};
+border G2(t=0,1) {x=1; y=t;};
+border G3(t=0,1) {x=1-t; y=1;};
+border G4(t=0,1) {x=0; y=1-t;};
+mesh Th = buildmesh(G1(n)+G2(n)+G3(n)+G4(n));
 
-// Définition de l'espace de discrétisation set des variables associées
+// --- Définition de l'espace de discrétisation set des variables associées
 fespace Vh(Th,P1);
 Vh u,v;
 Vh ux,uy;
 
-// Définition du second membre
+// --- Définition du second membre
 real K0;
 real[int] K1(2);
 real[int, int] K2(2,2);
-
 K0 = 1;
 K1 = [1,1];
-K2 = [[0,0], [0,0]];
+K2 = [[1,0], [0,1]];
 
-real x0 = 0.9;
-real y0 = 0.5;
-cout << "Position initiale : " << x0 << " " << y0 << endl;
-real xx0(0.1), yy0(0.9);
+func g = K0 + K1(0)*(x-x0)+K1(1)*(y-y0)
+        + (x-x0)*((x-x0)*K2(0,0)+(y-y0)*K2(0,1))
+        + (y-y0)*((x-x0)*K2(1,0)+(y-y0)*K2(1,1));
 
-func g = K0 + K1(0)*(x-x0)+K1(1)*(y-y0) + (x-x0)*((x-x0)*K2(0,0)+(y-y0)*K2(0,1))
-+ (y-y0)*((x-x0)*K2(1,0)+(y-y0)*K2(1,1));
+func gg = K0 + K1(0)*(x-xx0)+K1(1)*(y-yy0)
+        + (x-xx0)*((x-xx0)*K2(0,0)+(y-yy0)*K2(0,1))
+        + (y-yy0)*((x-xx0)*K2(1,0)+(y-yy0)*K2(1,1));
 
-func gg = K0 + K1(0)*(x-xx0)+K1(1)*(y-yy0) + (x-xx0)*((x-xx0)*K2(0,0)+(y-yy0)*K2(0,1))
-+ (y-yy0)*((x-xx0)*K2(1,0)+(y-yy0)*K2(1,1));
 func dgx = -K1(0) - 2*(x-xx0)*K2(0,0) - (y-yy0)*K2(0,1) - (y-yy0)*K2(1,0);
 func dgy = -K1(1) - 2*(y-yy0)*K2(1,1) - (x-xx0)*K2(1,0) - (x-xx0)*K2(0,1);
 
-// Definition d'une macro
-macro grad(u) [dx(u),dy(u)]                 //
-
-problem laplace(u,v,solver=UMFPACK) =
-int2d(Th)( grad(u)'*grad(v) )             // '
-- int2d(Th)( g*v )
-+ on(Gamma1,Gamma2,Gamma3,Gamma4,u=0);
-
-// Résolution du système linéaire
-laplace;
-
-//plot(u, value=1, fill=1);
-
-
-// Récupération des valeurs aux points des capteurs
+// --- Capteurs
 int nbCapteursX, nbCapteursY;
-nbCapteursX = 30; // Nombre de capteurs (aucun sur les bords)
+real pasX, pasY;
+
+nbCapteursX = 30;
 nbCapteursY = 30;
 
-real pasX, pasY;
-pasX = 1./(nbCapteursX+1); // Distance entre les capteurs
-pasY = 1./(nbCapteursY+1);
+pasX = 1./(nbCapteursX+1);              // Distance entre
+pasY = 1./(nbCapteursY+1);              // les capteurs
 
-real[int] um(nbCapteursX*nbCapteursY); // Valeur de la solution sur les capteurs
+real[int] um(nbCapteursX*nbCapteursY);  // Valeur de la solution sur les capteurs
+
+// --- Sensibility
+int comp(0);
+real errx, erry;
+real eps = 0.00001;
+
+
+// -------------------------------------------------------
+// Creation de la matrice A et du second membre b
+// -------------------------------------------------------
+// Definition d'une macro
+macro grad(u) [dx(u),dy(u)]                                               //
+
+// Matrice A
+matrix A;
+varf laplace(u,v) = int2d(Th)( grad(u)'*grad(v) ) + on(G1,G2,G3,G4,u=0);  // '
+A = laplace(Vh,Vh);
+set(A,solver=UMFPACK);
+
+//Second membre b
+Vh secMembre; real[int] b(Vh.ndof);
+varf f(u,v) = int2d(Th)( g*v );
+//f[] = f(0,Vh);
+b = f(0,Vh);
+
+
+// -------------------------------------------------------
+// Resolution de Au = b avec (x0,y0) et sauvegarde des um
+// -------------------------------------------------------
+real[int] Uth(Vh.ndof);
+// Résolution du système linéaire
+Uth = A^-1*b;
+u[] = Uth;
+//plot(u, value=1, fill=1);
 
 for (int i=0; i<nbCapteursX; ++i)
 {
@@ -75,93 +100,57 @@ for (int i=0; i<nbCapteursX; ++i)
   }
 }
 
-//Sensibility
-errx = 10;
-erry = 10;
-int comp(0);
-real eps = 0.0001;
 
+// -------------------------------------------------------
+// Sensitivity Analisys
+// -------------------------------------------------------
+errx = 10; erry = 10;
+real[int] Ue(Vh.ndof), dUx(Vh.ndof), dUy(Vh.ndof);
 while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 200))
 {
   ++comp;
-  problem laplace(u,v,solver=UMFPACK) =
-  int2d(Th)( grad(u)'*grad(v) )             // '
-  - int2d(Th)( gg*v )
-  + on(Gamma1,Gamma2,Gamma3,Gamma4,u=0);
+  // Résolution du système linéaire
+  varf fe(u,v) = int2d(Th)( gg*v )+ on(G1,G2,G3,G4,u=0);;
+  b = fe(0,Vh);
+  Ue = A^-1*b;
 
   // Résolution du système linéaire
-  laplace;
-
-  problem laplace1(ux,v,solver=UMFPACK) =
-  int2d(Th)( grad(ux)'*grad(v) )             // '
-  - int2d(Th)( dgx*v )
-  + on(Gamma1,Gamma2,Gamma3,Gamma4,ux=0);
+  varf fx(u,v) = int2d(Th)( dgx*v )+ on(G1,G2,G3,G4,u=0);;
+  b = fx(0,Vh);
+  dUx = A^-1*b;
 
   // Résolution du système linéaire
-  laplace1;
-
-  problem laplace2(uy,v,solver=UMFPACK) =
-  int2d(Th)( grad(uy)'*grad(v) )             // '
-  - int2d(Th)( dgy*v )
-  + on(Gamma1,Gamma2,Gamma3,Gamma4,uy=0);
-
-  // Résolution du système linéaire, wait=1
-  laplace2;
+  varf fy(u,v) = int2d(Th)( dgy*v )+ on(G1,G2,G3,G4,u=0);;
+  b = fy(0,Vh);
+  dUy = A^-1*b;
 
   errx = 0;
   erry = 0;
 
   real i, j;
+  u[]=Ue;ux[]=dUx;uy[]=dUy;
   for (int k=0; k<nbCapteursX*nbCapteursY; ++k)
   {
     i = (int(k/nbCapteursX)+1) * pasX;
     j = (k%nbCapteursX+1) * pasY;
-    // cout << pasX << endl;
     errx = errx + (u(i,j) - um(k)) * ux(i,j);
     erry = erry + (u(i,j) - um(k)) * uy(i,j);
-    // cout << i << "  " << j << endl;
   }
+  //plot(u,fill=1,value=1, wait=);
 
-  xx0 -= 0.1 * errx;
-  yy0 -= 0.1 * erry;
+  xx0 -= 1 * errx;
+  yy0 -= 1 * erry;
 
-
-  cout << "Erreur : " << sqrt(pow(errx,2)+pow(erry,2)) << endl;
+  cout.flush;
+  cout << " -- Iteration : " << comp << " ; Erreur (grad): " << sqrt(errx*errx+erry*erry) << "         \r";
   // cout << comp << "  " << errx << "  " << erry << endl;
-
-  // plot(u, value=1, fill=1);
 }
-cout << "Position predite : " << xx0 << " " << yy0 << endl;
+cout << endl << " Position predite  : x0 = " << xx0 << " , y0 = " << yy0 << endl << endl;
 
 
-// problem laplace4(ux,v,solver=UMFPACK) =
-// int2d(Th)( grad(ux)'*grad(v) )             // '
-// - int2d(Th)( (K0 + K1(0)*(x-xx0)+K1(1)*(y-yy0))*v )
-// + on(Gamma1,Gamma2,Gamma3,Gamma4,ux=0);
-//
-// // Résolution du système linéaire
-// laplace4;
-//
-// problem laplace5(uy,v,solver=UMFPACK) =
-// int2d(Th)( grad(uy)'*grad(v) )             // '
-// - int2d(Th)( (K0 + K1(0)*(x-x0)+K1(1)*(y-y0))*v )
-// + on(Gamma1,Gamma2,Gamma3,Gamma4,uy=0);
-//
-// // Résolution du système linéaire
-// laplace5;
-//
-// u = abs(ux-uy);
-//
-// plot(u, value=1, fill=1, wait=1);
-//
-// savevtk("uth.vtk",Th,uy,dataname="uth");
-// savevtk("ue.vtk",Th,ux,dataname="ue");
-//
-// u = g;
-// plot(u, value=1, fill=1, wait=1);
-// u = gg;
-// plot(u, value=1, fill=1, wait=1);
-
+// -------------------------------------------------------
+// Sauvegarde des données des capteurs
+// -------------------------------------------------------
 // Trace les um dans un fichier capteurs.txt
 ofstream cap("capteurs.txt");
 cap << "Nombre de capteurs suivant x : " << nbCapteursX << endl;
@@ -173,16 +162,18 @@ for (int i=0; i<nbCapteursX*nbCapteursY; ++i)
 }
 
 
-
-// // Trace de la solution dans un fichier
-// {
-//   ofstream file("sol.dat");
-//   for(int i=0;i<Th.nt;i++)
-//   {
-//     for (int j=0; j<3; j++)
-//     {
-//       file << Th[i][j].x << " " << Th[i][j].y << " " << u[][Vh(i,j)] << endl;
-//     }
-//     file << Th[i][0].x << " " << Th[i][0].y << " " << u[][Vh(i,0)] <<" \n\n\n";
-//   }
-// }
+// -------------------------------------------------------
+// Sauvegarde de la solution pour gnuplot
+//-------------------------------------------------------
+// Trace de la solution dans un fichier
+{
+ ofstream file("sol.dat");
+ for(int i=0;i<Th.nt;i++)
+ {
+   for (int j=0; j<3; j++)
+   {
+     file << Th[i][j].x << " " << Th[i][j].y << " " << u[][Vh(i,j)] << endl;
+   }
+   file << Th[i][0].x << " " << Th[i][0].y << " " << u[][Vh(i,0)] <<" \n\n\n";
+ }
+}

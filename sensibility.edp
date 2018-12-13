@@ -60,7 +60,7 @@ real[int] um(nbCapteursX*nbCapteursY);  // Valeur de la solution sur les capteur
 // --- Sensibility
 int comp(0);
 real errx, erry;
-real eps = 0.00001;
+real eps = 0.000001;
 
 
 // -------------------------------------------------------
@@ -106,7 +106,7 @@ for (int i=0; i<nbCapteursX; ++i)
 // -------------------------------------------------------
 errx = 10; erry = 10;
 real[int] Ue(Vh.ndof), dUx(Vh.ndof), dUy(Vh.ndof);
-while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 200))
+while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 500))
 {
   ++comp;
   // Résolution du système linéaire

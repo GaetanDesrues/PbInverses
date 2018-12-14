@@ -63,6 +63,8 @@ for (int nn = 20; nn>2; nn-=4)
   pasY = 1./(nbCapteursY+1);              // les capteurs
 
   real[int] um(nbCapteursX*nbCapteursY);  // Valeur de la solution sur les capteurs
+  real[int] gradUx(nbCapteursX*nbCapteursY);
+  real[int] gradUy(nbCapteursX*nbCapteursY);
 
   // --- Sensibility
   int comp(0);
@@ -142,8 +144,15 @@ for (int nn = 20; nn>2; nn-=4)
       j = (k%nbCapteursX+1) * pasY;
       errx = errx + (u(i,j) - um(k)) * ux(i,j);
       erry = erry + (u(i,j) - um(k)) * uy(i,j);
+      // gradUx(k) = (u(i,j) - um(k)) * ux(i,j);
+      // gradUy(k) = (u(i,j) - um(k)) * uy(i,j);
     }
     //plot(u,fill=1,value=1, wait=);
+
+    // real ps = (A*gradUx)*gradUx;
+    // real tx = errx^2/(ps);
+    // real ty = erry^2/(A*gradUy);
+    // cout << tx << "  " << ty << endl;
 
     xx0 -= 1 * errx;
     yy0 -= 1 * erry;

@@ -5,6 +5,8 @@
 verbosity = 0;
 load "iovtk";
 
+ofstream erreurC("errcap.txt");
+
 // -------------------------------------------------------
 // Mise en place du probleme
 // -------------------------------------------------------
@@ -35,12 +37,12 @@ K1 = [1,1];
 K2 = [[1,0], [0,1]];
 
 func g = K0 + K1(0)*(x-x0)+K1(1)*(y-y0)
-        + (x-x0)*((x-x0)*K2(0,0)+(y-y0)*K2(0,1))
-        + (y-y0)*((x-x0)*K2(1,0)+(y-y0)*K2(1,1));
++ (x-x0)*((x-x0)*K2(0,0)+(y-y0)*K2(0,1))
++ (y-y0)*((x-x0)*K2(1,0)+(y-y0)*K2(1,1));
 
 func gg = K0 + K1(0)*(x-xx0)+K1(1)*(y-yy0)
-        + (x-xx0)*((x-xx0)*K2(0,0)+(y-yy0)*K2(0,1))
-        + (y-yy0)*((x-xx0)*K2(1,0)+(y-yy0)*K2(1,1));
++ (x-xx0)*((x-xx0)*K2(0,0)+(y-yy0)*K2(0,1))
++ (y-yy0)*((x-xx0)*K2(1,0)+(y-yy0)*K2(1,1));
 
 func dgx = -K1(0) - 2*(x-xx0)*K2(0,0) - (y-yy0)*K2(0,1) - (y-yy0)*K2(1,0);
 func dgy = -K1(1) - 2*(y-yy0)*K2(1,1) - (x-xx0)*K2(1,0) - (x-xx0)*K2(0,1);
@@ -49,131 +51,138 @@ func dgy = -K1(1) - 2*(y-yy0)*K2(1,1) - (x-xx0)*K2(1,0) - (x-xx0)*K2(0,1);
 int nbCapteursX, nbCapteursY;
 real pasX, pasY;
 
-nbCapteursX = 30;
-nbCapteursY = 30;
-
-pasX = 1./(nbCapteursX+1);              // Distance entre
-pasY = 1./(nbCapteursY+1);              // les capteurs
-
-real[int] um(nbCapteursX*nbCapteursY);  // Valeur de la solution sur les capteurs
-
-// --- Sensibility
-int comp(0);
-real errx, erry;
-real eps = 0.000001;
-
-
-// -------------------------------------------------------
-// Creation de la matrice A et du second membre b
-// -------------------------------------------------------
-// Definition d'une macro
-macro grad(u) [dx(u),dy(u)]                                               //
-
-// Matrice A
-matrix A;
-varf laplace(u,v) = int2d(Th)( grad(u)'*grad(v) ) + on(G1,G2,G3,G4,u=0);  // '
-A = laplace(Vh,Vh);
-set(A,solver=UMFPACK);
-
-//Second membre b
-Vh secMembre; real[int] b(Vh.ndof);
-varf f(u,v) = int2d(Th)( g*v );
-//f[] = f(0,Vh);
-b = f(0,Vh);
-
-
-// -------------------------------------------------------
-// Resolution de Au = b avec (x0,y0) et sauvegarde des um
-// -------------------------------------------------------
-real[int] Uth(Vh.ndof);
-// Résolution du système linéaire
-Uth = A^-1*b;
-u[] = Uth;
-//plot(u, value=1, fill=1);
-
-for (int i=0; i<nbCapteursX; ++i)
+for (int nn = 20; nn>2; nn-=4)
 {
-  for (int j=0; j<nbCapteursY; ++j)
+  xx0 = 0.1;
+  yy0 = 0.9;
+
+  nbCapteursX = nn;
+  nbCapteursY = nn;
+
+  pasX = 1./(nbCapteursX+1);              // Distance entre
+  pasY = 1./(nbCapteursY+1);              // les capteurs
+
+  real[int] um(nbCapteursX*nbCapteursY);  // Valeur de la solution sur les capteurs
+
+  // --- Sensibility
+  int comp(0);
+  real errx, erry;
+  real eps = 0.0001;
+
+
+  // -------------------------------------------------------
+  // Creation de la matrice A et du second membre b
+  // -------------------------------------------------------
+  // Definition d'une macro
+  macro grad(u) [dx(u),dy(u)]                                               //
+
+  // Matrice A
+  matrix A;
+  varf laplace(u,v) = int2d(Th)( grad(u)'*grad(v) ) + on(G1,G2,G3,G4,u=0);  // '
+  A = laplace(Vh,Vh);
+  set(A,solver=UMFPACK);
+
+  //Second membre b
+  Vh secMembre; real[int] b(Vh.ndof);
+  varf f(u,v) = int2d(Th)( g*v );
+  //f[] = f(0,Vh);
+  b = f(0,Vh);
+
+
+  // -------------------------------------------------------
+  // Resolution de Au = b avec (x0,y0) et sauvegarde des um
+  // -------------------------------------------------------
+  real[int] Uth(Vh.ndof);
+  // Résolution du système linéaire
+  Uth = A^-1*b;
+  u[] = Uth;
+  //plot(u, value=1, fill=1);
+
+  for (int i=0; i<nbCapteursX; ++i)
   {
-    um(i*nbCapteursX + j) = u((i+1)*pasX, (j+1)*pasY);
-    // cout << "la : " << (i+1)*pasX << " " << (j+1)*pasY << endl;
+    for (int j=0; j<nbCapteursY; ++j)
+    {
+      um(i*nbCapteursX + j) = u((i+1)*pasX, (j+1)*pasY);
+      // cout << "la : " << (i+1)*pasX << " " << (j+1)*pasY << endl;
+    }
   }
-}
 
 
-// -------------------------------------------------------
-// Sensitivity Analisys
-// -------------------------------------------------------
-errx = 10; erry = 10;
-real[int] Ue(Vh.ndof), dUx(Vh.ndof), dUy(Vh.ndof);
-while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 500))
-{
-  ++comp;
-  // Résolution du système linéaire
-  varf fe(u,v) = int2d(Th)( gg*v )+ on(G1,G2,G3,G4,u=0);;
-  b = fe(0,Vh);
-  Ue = A^-1*b;
-
-  // Résolution du système linéaire
-  varf fx(u,v) = int2d(Th)( dgx*v )+ on(G1,G2,G3,G4,u=0);;
-  b = fx(0,Vh);
-  dUx = A^-1*b;
-
-  // Résolution du système linéaire
-  varf fy(u,v) = int2d(Th)( dgy*v )+ on(G1,G2,G3,G4,u=0);;
-  b = fy(0,Vh);
-  dUy = A^-1*b;
-
-  errx = 0;
-  erry = 0;
-
-  real i, j;
-  u[]=Ue;ux[]=dUx;uy[]=dUy;
-  for (int k=0; k<nbCapteursX*nbCapteursY; ++k)
+  // -------------------------------------------------------
+  // Sensitivity Analisys
+  // -------------------------------------------------------
+  errx = 10; erry = 10;
+  real[int] Ue(Vh.ndof), dUx(Vh.ndof), dUy(Vh.ndof);
+  while ((comp < 500)) //(sqrt(errx*errx + erry*erry) > eps) &&
   {
-    i = (int(k/nbCapteursX)+1) * pasX;
-    j = (k%nbCapteursX+1) * pasY;
-    errx = errx + (u(i,j) - um(k)) * ux(i,j);
-    erry = erry + (u(i,j) - um(k)) * uy(i,j);
+    ++comp;
+    // Résolution du système linéaire
+    varf fe(u,v) = int2d(Th)( gg*v )+ on(G1,G2,G3,G4,u=0);;
+    b = fe(0,Vh);
+    Ue = A^-1*b;
+
+    // Résolution du système linéaire
+    varf fx(u,v) = int2d(Th)( dgx*v )+ on(G1,G2,G3,G4,u=0);;
+    b = fx(0,Vh);
+    dUx = A^-1*b;
+
+    // Résolution du système linéaire
+    varf fy(u,v) = int2d(Th)( dgy*v )+ on(G1,G2,G3,G4,u=0);;
+    b = fy(0,Vh);
+    dUy = A^-1*b;
+
+    errx = 0;
+    erry = 0;
+
+    real i, j;
+    u[]=Ue;ux[]=dUx;uy[]=dUy;
+    for (int k=0; k<nbCapteursX*nbCapteursY; ++k)
+    {
+      i = (int(k/nbCapteursX)+1) * pasX;
+      j = (k%nbCapteursX+1) * pasY;
+      errx = errx + (u(i,j) - um(k)) * ux(i,j);
+      erry = erry + (u(i,j) - um(k)) * uy(i,j);
+    }
+    //plot(u,fill=1,value=1, wait=);
+
+    xx0 -= 1 * errx;
+    yy0 -= 1 * erry;
+
+    cout.flush;
+    cout << " -- Iteration : " << comp << " ; Erreur (grad): " << sqrt(errx*errx+erry*erry) << "         \r";
+    // cout << comp << "  " << errx << "  " << erry << endl;
   }
-  //plot(u,fill=1,value=1, wait=);
+  cout << endl << " Position predite  : x0 = " << xx0 << " , y0 = " << yy0 << endl << endl;
+  erreurC << nn << "  " << sqrt(abs(x0-xx0)^2+abs(y0-yy0)^2) << endl;
 
-  xx0 -= 1 * errx;
-  yy0 -= 1 * erry;
-
-  cout.flush;
-  cout << " -- Iteration : " << comp << " ; Erreur (grad): " << sqrt(errx*errx+erry*erry) << "         \r";
-  // cout << comp << "  " << errx << "  " << erry << endl;
 }
-cout << endl << " Position predite  : x0 = " << xx0 << " , y0 = " << yy0 << endl << endl;
-
 
 // -------------------------------------------------------
 // Sauvegarde des données des capteurs
 // -------------------------------------------------------
 // Trace les um dans un fichier capteurs.txt
-ofstream cap("capteurs.txt");
-cap << "Nombre de capteurs suivant x : " << nbCapteursX << endl;
-cap << "Nombre de capteurs suivant y : " << nbCapteursY << endl;
-cap << "Sol depuis : x0 = (" << x0 << "," << y0 << ")" << endl << endl;
-for (int i=0; i<nbCapteursX*nbCapteursY; ++i)
-{
-  cap << (int(i/nbCapteursX)+1)*pasX << " " << (i%nbCapteursX+1)*pasY << " " << um(i) << endl;
-}
-
-
-// -------------------------------------------------------
-// Sauvegarde de la solution pour gnuplot
-//-------------------------------------------------------
-// Trace de la solution dans un fichier
-{
- ofstream file("sol.dat");
- for(int i=0;i<Th.nt;i++)
- {
-   for (int j=0; j<3; j++)
-   {
-     file << Th[i][j].x << " " << Th[i][j].y << " " << u[][Vh(i,j)] << endl;
-   }
-   file << Th[i][0].x << " " << Th[i][0].y << " " << u[][Vh(i,0)] <<" \n\n\n";
- }
-}
+// ofstream cap("capteurs.txt");
+// cap << "Nombre de capteurs suivant x : " << nbCapteursX << endl;
+// cap << "Nombre de capteurs suivant y : " << nbCapteursY << endl;
+// cap << "Sol depuis : x0 = (" << x0 << "," << y0 << ")" << endl << endl;
+// for (int i=0; i<nbCapteursX*nbCapteursY; ++i)
+// {
+//   cap << (int(i/nbCapteursX)+1)*pasX << " " << (i%nbCapteursX+1)*pasY << " " << um(i) << endl;
+// }
+//
+//
+// // -------------------------------------------------------
+// // Sauvegarde de la solution pour gnuplot
+// //-------------------------------------------------------
+// // Trace de la solution dans un fichier
+// {
+//   ofstream file("sol.dat");
+//   for(int i=0;i<Th.nt;i++)
+//   {
+//     for (int j=0; j<3; j++)
+//     {
+//       file << Th[i][j].x << " " << Th[i][j].y << " " << u[][Vh(i,j)] << endl;
+//     }
+//     file << Th[i][0].x << " " << Th[i][0].y << " " << u[][Vh(i,0)] <<" \n\n\n";
+//   }
+// }

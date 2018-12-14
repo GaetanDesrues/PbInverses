@@ -23,8 +23,8 @@ mesh Th = buildmesh(G1(n)+G2(n)+G3(n)+G4(n));
 
 // --- Définition de l'espace de discrétisation set des variables associées
 fespace Vh(Th,P1);
-Vh u,v;
-Vh ux,uy;
+Vh u,v,dI,bp;
+Vh lambda;
 
 // --- Définition du second membre
 real K0;
@@ -59,6 +59,7 @@ real[int] um(nbCapteursX*nbCapteursY);  // Valeur de la solution sur les capteur
 
 // --- Sensibility
 int comp(0);
+real i, j;
 real errx, erry;
 real eps = 0.000001;
 
@@ -70,10 +71,12 @@ real eps = 0.000001;
 macro grad(u) [dx(u),dy(u)]                                               //
 
 // Matrice A
-matrix A;
+matrix A, At;
 varf laplace(u,v) = int2d(Th)( grad(u)'*grad(v) ) + on(G1,G2,G3,G4,u=0);  // '
 A = laplace(Vh,Vh);
+At = A';
 set(A,solver=UMFPACK);
+set(At,solver=UMFPACK);
 
 //Second membre b
 Vh secMembre; real[int] b(Vh.ndof);
@@ -113,30 +116,35 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 500))
   varf fe(u,v) = int2d(Th)( gg*v )+ on(G1,G2,G3,G4,u=0);;
   b = fe(0,Vh);
   Ue = A^-1*b;
+  u[]=Ue;
 
-  // Résolution du système linéaire
-  varf fx(u,v) = int2d(Th)( dgx*v )+ on(G1,G2,G3,G4,u=0);;
-  b = fx(0,Vh);
-  dUx = A^-1*b;
-
-  // Résolution du système linéaire
-  varf fy(u,v) = int2d(Th)( dgy*v )+ on(G1,G2,G3,G4,u=0);;
-  b = fy(0,Vh);
-  dUy = A^-1*b;
-
-  errx = 0;
-  erry = 0;
-
-  real i, j;
-  u[]=Ue;ux[]=dUx;uy[]=dUy;
-  for (int k=0; k<nbCapteursX*nbCapteursY; ++k)
+  dI = 0;
+  for(int k=0; k<nbCapteursX*nbCapteursY; k++)
   {
     i = (int(k/nbCapteursX)+1) * pasX;
     j = (k%nbCapteursX+1) * pasY;
-    errx = errx + (u(i,j) - um(k)) * ux(i,j);
-    erry = erry + (u(i,j) - um(k)) * uy(i,j);
+    dI = dI + real((x>i-1e-2)&&(y>j-1e-2)&&(x<i+1e-2)&&(y<j+1e-2))*(u(i,j) - um(k));
+    plot (dI, value=1, fill=1);
   }
-  //plot(u,fill=1,value=1, wait=);
+
+  // Résolution du système linéaire
+  varf fi(u,v) = int2d(Th)( dI*v )+ on(G1,G2,G3,G4,u=0);
+  b = fi(0,Vh);
+  lambda[] = At^-1*b;
+
+  // Résolution du système linéaire
+  varf fpx(u,v) = int2d(Th)( dgx*v )+ on(G1,G2,G3,G4,u=0);
+  b = fpx(0,Vh);
+  bp[] = At^-1*b;
+
+  errx = lambda'*bp;
+
+  // Résolution du système linéaire
+  varf fpy(u,v) = int2d(Th)( dgy*v )+ on(G1,G2,G3,G4,u=0);
+  b = fpy(0,Vh);
+  bp[] = At^-1*b;
+
+  erry = lambda'*bp;
 
   xx0 -= 1 * errx;
   yy0 -= 1 * erry;

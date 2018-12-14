@@ -113,7 +113,7 @@ for (int nn = 20; nn>2; nn-=4)
   // -------------------------------------------------------
   errx = 10; erry = 10;
   real[int] Ue(Vh.ndof), dUx(Vh.ndof), dUy(Vh.ndof);
-  while ((comp < 500)) //(sqrt(errx*errx + erry*erry) > eps) &&
+  while ((sqrt(errx*errx + erry*erry) > eps))// && (comp < 500))
   {
     ++comp;
     // Résolution du système linéaire
@@ -153,7 +153,7 @@ for (int nn = 20; nn>2; nn-=4)
     // cout << comp << "  " << errx << "  " << erry << endl;
   }
   cout << endl << " Position predite  : x0 = " << xx0 << " , y0 = " << yy0 << endl << endl;
-  erreurC << nn << "  " << sqrt(abs(x0-xx0)^2+abs(y0-yy0)^2) << endl;
+  erreurC << nn << "  " << comp << endl;//sqrt(abs(x0-xx0)^2+abs(y0-yy0)^2)
 
 }
 

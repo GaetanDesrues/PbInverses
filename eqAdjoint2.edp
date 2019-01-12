@@ -14,19 +14,13 @@ real xx0(0.1), yy0(0.9);
 cout << endl << " Position initiale : x0 = " << x0 << " , y0 = " << y0 << endl;
 
 // Définition des bord du domaine de calcul
-int n = 20;
-// border G1(t=0,1) {x=t; y=0;};
-// border G2(t=0,1) {x=1; y=t;};
-// border G3(t=0,1) {x=1-t; y=1;};
-// border G4(t=0,1) {x=0; y=1-t;};
-// mesh Th = buildmesh(G1(n)+G2(n)+G3(n)+G4(n));
+int n = 200;
 mesh Th = square(n,n,[x,y]);
-// plot (Th);
 
 // --- Définition de l'espace de discrétisation set des variables associées
 fespace Vh(Th,P1);
-Vh u,v,dI,bp;
-Vh lambda;
+Vh u,v,W,bp;
+Vh[int] vh(2);
 
 // --- Définition du second membre
 real K0;
@@ -51,13 +45,38 @@ func dgy = -K1(1) - 2*(y-yy0)*K2(1,1) - (x-xx0)*K2(1,0) - (x-xx0)*K2(0,1);
 int nbCapteursX, nbCapteursY;
 real pasX, pasY;
 
-nbCapteursX = 3;
-nbCapteursY = 3;
+nbCapteursX = 9;
+nbCapteursY = 9;
 
 pasX = 1./(nbCapteursX+1);              // Distance entre
 pasY = 1./(nbCapteursY+1);              // les capteurs
 
 real[int] um(nbCapteursX*nbCapteursY);  // Valeur de la solution sur les capteurs
+real[int] vectC(nbCapteursX*nbCapteursY);
+real xC, yC;
+
+vh[0] = x;
+vh[1] = y;
+for (int n = 0; n < Vh.ndof; n++)
+{
+  for (int nC=0; nC<nbCapteursX*nbCapteursY; ++nC)
+  {
+    yC = (int(nC/nbCapteursX)+1)*pasX;
+    xC = (nC%nbCapteursX+1)*pasY;
+    if ((abs(vh[0][][n]-xC)<1e-12) && (abs(vh[1][][n]-yC)<1e-12))
+    {
+      vectC[nC]=n;
+      break;
+    }
+  }
+}
+// Check Capteurs
+/*for (int n = 0; n < nbCapteursX*nbCapteursY; n++) {
+    cout << n;
+    for (int d = 0; d < 2; d++)
+        cout << "  " << vectC[n]<< " " << vh[d][][vectC[n]];
+    cout << endl;
+}*/
 
 // --- Sensibility
 int comp(0);
@@ -66,57 +85,17 @@ real errx, erry;
 real eps = 0.000001;
 
 
-real xC, yC;
-int nbCap(0);
-
-// real[int] boo(Vh.ndof);
-real[int] vecti(nbCapteursX*nbCapteursY);
-real[int] vectj(nbCapteursX*nbCapteursY);
-for(int i=0;i<Th.nt;i++)
-{
-  for (int j=0; j<3; j++)
-  {
-    x = Th[i][j].x;
-    y = Th[i][j].y;
-    // cout << x << "  " << y << endl;
-
-    for (int c=nbCap; c<nbCapteursX*nbCapteursY; ++c)
-    {
-      yC = (int(c/nbCapteursX)+1)*pasX;
-      xC = (c%nbCapteursX+1)*pasY;
-      // cout << xC << "  " << yC << endl;
-      if ((abs(x-xC)<1e-6) && (abs(y-yC)<1e-6))
-      {
-        // cout << xC << "  " << yC << endl;
-        vecti[c]=i;
-        vectj[c]=j;
-        nbCap++;
-        break;
-      }
-    }
-  }
-}
-// cout << nbCap << endl;
-for (int c=0; c<nbCapteursX*nbCapteursY; ++c)
-{
-  func fcd = x+y;
-  u = fcd;
-  plot (u);
-  cout << vecti[c] << "  " << vectj[c] << "  " << u[][Vh(vecti[c],vectj[c])] << endl;
-}
-
-/*
 // -------------------------------------------------------
 // Creation de la matrice A et du second membre b
 // -------------------------------------------------------
 // Definition d'une macro
-macro grad(u) [dx(u),dy(u)]                                               //
+macro grad(u) [dx(u),dy(u)]                                           //
 
 // Matrice A
 matrix A, At;
-varf laplace(u,v) = int2d(Th)( grad(u)'*grad(v) ) + on(G1,G2,G3,G4,u=0);  // '
+varf laplace(u,v) = int2d(Th)( grad(u)'*grad(v) ) + on(1,2,3,4,u=0);  // '
 A = laplace(Vh,Vh);
-At = A';
+At = A';                                                              // '
 set(A,solver=UMFPACK);
 set(At,solver=UMFPACK);
 
@@ -126,6 +105,14 @@ varf f(u,v) = int2d(Th)( g*v );
 //f[] = f(0,Vh);
 b = f(0,Vh);
 
+//Mat B
+func fK1 = K1(0); func fK2 = K1(1);
+Vh vecK1, vecK2;
+vecK1 = fK1; vecK2 = fK2;
+matrix B,Bt;
+B.resize(Vh.ndof+2,Vh.ndof);
+B = [[A,vecK1[],vecK2[]]];
+Bt = B';                                                              // '
 
 // -------------------------------------------------------
 // Resolution de Au = b avec (x0,y0) et sauvegarde des um
@@ -150,51 +137,49 @@ for (int i=0; i<nbCapteursX; ++i)
 // Sensitivity Analisys
 // -------------------------------------------------------
 errx = 10; erry = 10;
-real[int] Ue(Vh.ndof), dUx(Vh.ndof), dUy(Vh.ndof);
-while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 500))
+real[int] Ue(Vh.ndof), dUx(Vh.ndof), dUy(Vh.ndof), lambda(Vh.ndof);
+while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 100))
 {
   ++comp;
   // Résolution du système linéaire
-  varf fe(u,v) = int2d(Th)( gg*v )+ on(G1,G2,G3,G4,u=0);;
+  varf fe(u,v) = int2d(Th)( gg*v )+ on(1,2,3,4,u=0);;
   b = fe(0,Vh);
   Ue = A^-1*b;
   u[]=Ue;
 
-  dI = 0;
+  W = 0;
   for(int k=0; k<nbCapteursX*nbCapteursY; k++)
   {
     i = (int(k/nbCapteursX)+1) * pasX;
     j = (k%nbCapteursX+1) * pasY;
-    dI = dI + real((x>i-1e-2)&&(y>j-1e-2)&&(x<i+1e-2)&&(y<j+1e-2))*(u(i,j) - um(k));
-    plot (dI, value=1, fill=1);
+    W[][vectC[k]] = u[][vectC[k]] - um(k);
+    plot (W, value=1, fill=1);
   }
 
 
   // Résolution du système linéaire
-  varf fi(u,v) = int2d(Th)( dI*v )+ on(G1,G2,G3,G4,u=0);
+  varf fi(u,v) = int2d(Th)( W*v )+ on(1,2,3,4,u=0);
   b = fi(0,Vh);
-  lambda[] = At^-1*b;
+  lambda = At^-1*b;
 
-  // Résolution du système linéaire
-  varf fpx(u,v) = int2d(Th)( dgx*v )+ on(G1,G2,G3,G4,u=0);
-  b = fpx(0,Vh);
-  bp[] = At^-1*b;
-
-  errx = lambda'*bp;
-
-  // Résolution du système linéaire
-  varf fpy(u,v) = int2d(Th)( dgy*v )+ on(G1,G2,G3,G4,u=0);
-  b = fpy(0,Vh);
-  bp[] = At^-1*b;
-
-  erry = lambda'*bp;
+  Ue = At*lambda;                                                  // '
+  errx = 0;
+  for(int i=0; i< Vh.ndof; i++)
+  {
+    errx = lambda(i)*K1(0);
+    erry = lambda(i)*K1(1);
+  }
+  errx = errx*errx + erry*erry;
+  for(int i=0; i< Vh.ndof; i++)
+    errx = errx + Ue(i)*Ue(i);
+  erry = errx;
 
   xx0 -= 1 * errx;
   yy0 -= 1 * erry;
 
   cout.flush;
-  cout << " -- Iteration : " << comp << " ; Erreur (grad): " << sqrt(errx*errx+erry*erry) << "         \r";
-  // cout << comp << "  " << errx << "  " << erry << endl;
+  //cout << " -- Iteration : " << comp << " ; Erreur (grad): " << sqrt(errx*errx+erry*erry) << "         \r";
+  cout << comp << "  " << errx << "  " << erry << endl;
 }
 cout << endl << " Position predite  : x0 = " << xx0 << " , y0 = " << yy0 << endl << endl;
 
@@ -228,4 +213,3 @@ for (int i=0; i<nbCapteursX*nbCapteursY; ++i)
    file << Th[i][0].x << " " << Th[i][0].y << " " << u[][Vh(i,0)] <<" \n\n\n";
  }
 }
-*/

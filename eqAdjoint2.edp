@@ -187,7 +187,7 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 500))
 
   plot (bp, value=1, fill=1, wait=1);
 
-  cout << lambda[] << endl;
+  // cout << lambda[] << endl;
   erry = lambda*bp;
 
   xx0 -= 1 * errx;

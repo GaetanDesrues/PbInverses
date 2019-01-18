@@ -122,7 +122,11 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 500))
     i = (int(k/nbCapteursX)+1) * pasX;
     j = (k%nbCapteursX+1) * pasY;
     dI = 0;
-
+    for (int i=0;i<Th.nt;i++){
+      for ( int j=0; j<3; j++){
+        ff<<Th[i][j].x << "\t" << Th[i][j].y << "\t" << u[][Vh(i,j)] << endl;
+      }
+      ff<<Th[i][0].x << "\t" << Th[i][0].y << "\t" << u[][Vh(i,0)] << "\n\n\n";
     cout.flush;
     cout << " -- Construction de V : Avancement " << (100.0*k)/kmax << " %       \r";
   }

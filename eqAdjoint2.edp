@@ -15,10 +15,10 @@ cout << endl << " Position initiale : x0 = " << x0 << " , y0 = " << y0 << endl;
 
 // Définition des bord du domaine de calcul
 int n = 50;
-border G1(t=0,1) {x=t; y=0;};
-border G2(t=0,1) {x=1; y=t;};
-border G3(t=0,1) {x=1-t; y=1;};
-border G4(t=0,1) {x=0; y=1-t;};
+// border G1(t=0,1) {x=t; y=0;};
+// border G2(t=0,1) {x=1; y=t;};
+// border G3(t=0,1) {x=1-t; y=1;};
+// border G4(t=0,1) {x=0; y=1-t;};
 // mesh Th = buildmesh(G1(n)+G2(n)+G3(n)+G4(n));
 mesh Th = square(n,n,[x,y]);
 // plot (Th);
@@ -59,43 +59,41 @@ pasY = 1./(nbCapteursY+1);              // les capteurs
 
 real[int] um(nbCapteursX*nbCapteursY);  // Valeur de la solution sur les capteurs
 
-// --- Sensibility
 int comp(0);
 real i, j;
 real errx, erry;
 real eps = 0.000001;
 
-
-real xC, yC;
-int nbCap(0);
+// real xC, yC;
+// int nbCap(0);
 
 // real[int] boo(Vh.ndof);
-real[int] vecti(nbCapteursX*nbCapteursY);
-real[int] vectj(nbCapteursX*nbCapteursY);
-for(int i=0;i<Th.nt;i++)
-{
-  for (int j=0; j<3; j++)
-  {
-    x = Th[i][j].x;
-    y = Th[i][j].y;
-    // cout << x << "  " << y << endl;
-
-    for (int c=nbCap; c<nbCapteursX*nbCapteursY; ++c)
-    {
-      yC = (int(c/nbCapteursX)+1)*pasX;
-      xC = (c%nbCapteursX+1)*pasY;
-      // cout << xC << "  " << yC << endl;
-      if ((abs(x-xC)<1e-6) && (abs(y-yC)<1e-6))
-      {
-        // cout << xC << "  " << yC << endl;
-        vecti[c]=i;
-        vectj[c]=j;
-        nbCap++;
-        break;
-      }
-    }
-  }
-}
+// real[int] vecti(nbCapteursX*nbCapteursY);
+// real[int] vectj(nbCapteursX*nbCapteursY);
+// for(int i=0;i<Th.nt;i++)
+// {
+//   for (int j=0; j<3; j++)
+//   {
+//     x = Th[i][j].x;
+//     y = Th[i][j].y;
+//     // cout << x << "  " << y << endl;
+//
+//     for (int c=nbCap; c<nbCapteursX*nbCapteursY; ++c)
+//     {
+//       yC = (int(c/nbCapteursX)+1)*pasX;
+//       xC = (c%nbCapteursX+1)*pasY;
+//       // cout << xC << "  " << yC << endl;
+//       if ((abs(x-xC)<1e-6) && (abs(y-yC)<1e-6))
+//       {
+//         // cout << xC << "  " << yC << endl;
+//         vecti[c]=i;
+//         vectj[c]=j;
+//         nbCap++;
+//         break;
+//       }
+//     }
+//   }
+// }
 //// cout << nbCap << endl;
 //for (int c=0; c<nbCapteursX*nbCapteursY; ++c)
 //{
@@ -109,7 +107,6 @@ for(int i=0;i<Th.nt;i++)
 // -------------------------------------------------------
 // Creation de la matrice A et du second membre b
 // -------------------------------------------------------
-// Definition d'une macro
 macro grad(u) [dx(u),dy(u)]                                               //
 
 // Matrice A
@@ -146,16 +143,13 @@ for (int i=0; i<nbCapteursX; ++i)
 }
 
 
-// -------------------------------------------------------
-// Sensitivity Analisys
-// -------------------------------------------------------
 errx = 10; erry = 10;
 real[int] Ue(Vh.ndof), dUx(Vh.ndof), dUy(Vh.ndof);
 while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 500))
 {
   ++comp;
   // Résolution du système linéaire
-  varf fe(u,v) = int2d(Th)( gg*v )+ on(G1,G2,G3,G4,u=0);;
+  varf fe(u,v) = int2d(Th)( gg*v )+ on(1,2,3,4,u=0);;
   b = fe(0,Vh);
   Ue = A^-1*b;
   u[]=Ue;

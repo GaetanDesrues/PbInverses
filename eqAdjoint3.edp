@@ -176,21 +176,12 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 100))
   plot (lamb, value=1, fill=1, wait=1);
 
   // Résolution du système linéaire
-  varf fpx(u,v) = int2d(Th)( (dgx+dgy)*v )+ on(1,2,3,4,u=0);
-  b = fpx(0,Vh);
-  bp[] = At^-1*b;
-
+  bp = dgx;
   plot (bp, value=1, fill=1, wait=1);
-
   errx = lamb'*bp;
 
-  // Résolution du système linéaire
-  varf fpy(u,v) = int2d(Th)( dgy*v )+ on(1,2,3,4,u=0);
-  b = fpy(0,Vh);
-  bp[] = At^-1*b;
-
+  bp = dgy;
   plot (bp, value=1, fill=1, wait=1);
-
   erry = lamb'*bp;
 
   //Ue = At*lambda;                                                  // '

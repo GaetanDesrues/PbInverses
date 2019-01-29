@@ -178,11 +178,12 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 100))
   // Résolution du système linéaire
   bp = dgx;
   plot (bp, value=1, fill=1, wait=1);
-  errx = lamb'*bp;
+  errx = lamb*bp;
+
 
   bp = dgy;
   plot (bp, value=1, fill=1, wait=1);
-  erry = lamb'*bp;
+  erry = lamb*bp;
 
   //Ue = At*lambda;                                                  // '
   //errx = 0;

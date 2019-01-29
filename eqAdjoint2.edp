@@ -14,7 +14,7 @@ real xx0(0.1), yy0(0.9);
 cout << endl << " Position initiale : x0 = " << x0 << " , y0 = " << y0 << endl;
 
 // Définition des bord du domaine de calcul
-int n = 50;
+int n = 12;
 // border G1(t=0,1) {x=t; y=0;};
 // border G2(t=0,1) {x=1; y=t;};
 // border G3(t=0,1) {x=1-t; y=1;};
@@ -51,8 +51,8 @@ func dgy = -K1(1) - 2*(y-yy0)*K2(1,1) - (x-xx0)*K2(1,0) - (x-xx0)*K2(0,1);
 int nbCapteursX, nbCapteursY;
 real pasX, pasY;
 
-nbCapteursX = 9;
-nbCapteursY = 9;
+nbCapteursX = 2;
+nbCapteursY = 2;
 
 pasX = 1./(nbCapteursX+1);              // Distance entre
 pasY = 1./(nbCapteursY+1);              // les capteurs
@@ -160,8 +160,8 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 500))
     i = (int(k/nbCapteursX)+1) * pasX;
     j = (k%nbCapteursX+1) * pasY;
     dI = dI + real((x>i-1e-2)&&(y>j-1e-2)&&(x<i+1e-2)&&(y<j+1e-2))*(u(i,j) - um(k));
-    plot (dI, value=1, fill=1);
   }
+  plot (dI, value=1, fill=1, wait=1);
 
 
   // Résolution du système linéaire
@@ -187,6 +187,7 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 500))
 
   plot (bp, value=1, fill=1, wait=1);
 
+  // cout << lambda[] << endl;
   erry = lambda*bp;
 
   xx0 -= 1 * errx;
@@ -194,7 +195,7 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 500))
 
   cout.flush;
   //cout << " -- Iteration : " << comp << " ; Erreur (grad): " << sqrt(errx*errx+erry*erry) << "         \r";
-  cout << comp << "  " << errx << "  " << erry << endl;
+  cout << comp << "   " << errx << "  " << erry << endl;
 }
 cout << endl << " Position predite  : x0 = " << xx0 << " , y0 = " << yy0 << endl << endl;
 
@@ -217,14 +218,14 @@ for (int i=0; i<nbCapteursX*nbCapteursY; ++i)
 // Sauvegarde de la solution pour gnuplot
 //-------------------------------------------------------
 // Trace de la solution dans un fichier
-{
- ofstream file("sol.dat");
- for(int i=0;i<Th.nt;i++)
- {
-   for (int j=0; j<3; j++)
-   {
-     file << Th[i][j].x << " " << Th[i][j].y << " " << u[][Vh(i,j)] << endl;
-   }
-   file << Th[i][0].x << " " << Th[i][0].y << " " << u[][Vh(i,0)] <<" \n\n\n";
- }
-}
+// {
+//  ofstream file("sol.dat");
+//  for(int i=0;i<Th.nt;i++)
+//  {
+//    for (int j=0; j<3; j++)
+//    {
+//      file << Th[i][j].x << " " << Th[i][j].y << " " << u[][Vh(i,j)] << endl;
+//    }
+//    file << Th[i][0].x << " " << Th[i][0].y << " " << u[][Vh(i,0)] <<" \n\n\n";
+//  }
+// }

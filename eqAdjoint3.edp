@@ -10,11 +10,12 @@ load "iovtk";
 // -------------------------------------------------------
 // --- Parametres initiales (x0,y0) et finales (xx0,yy0)
 real x0 (0.9), y0 (0.5);
-real xx0(0.1), yy0(0.9);
-cout << endl << " Position initiale : x0 = " << x0 << " , y0 = " << y0 << endl;
+real xx0(0.5), yy0(0.4);
+cout << endl << " Position initiale : x0 = " << xx0 << " , y0 = " << yy0 << endl;
+cout << " Position cherche  : x0 = " << x0 << " , y0 = " << y0 << endl << endl;
 
 // Définition des bord du domaine de calcul
-int n = 10;
+int n = 100;
 mesh Th = square(n,n,[x,y]);
 
 // --- Définition de l'espace de discrétisation set des variables associées
@@ -46,8 +47,8 @@ func dgy = -K1(1) - 2*(y-yy0)*K2(1,1) - (x-xx0)*K2(1,0) - (x-xx0)*K2(0,1);
 int nbCapteursX, nbCapteursY;
 real pasX, pasY;
 
-nbCapteursX = 1;
-nbCapteursY = 1;
+nbCapteursX = 19;
+nbCapteursY = 19;
 
 pasX = 1./(nbCapteursX+1);              // Distance entre
 pasY = 1./(nbCapteursY+1);              // les capteurs
@@ -71,22 +72,6 @@ for (int n = 0; n < Vh.ndof; n++)
     }
   }
 }
-
-//// cout << nbCap << endl;
-//for (int c=0; c<nbCapteursX*nbCapteursY; ++c)
-//{
-//  func fcd = x+y;
-//  u = fcd;
-//  //plot (u);
-//  cout << vecti[c] << "  " << vectj[c] << "  " << u[][Vh(vecti[c],vectj[c])] << endl;
-//}
-// Check Capteurs
-/*for (int n = 0; n < nbCapteursX*nbCapteursY; n++) {
-    cout << n;
-    for (int d = 0; d < 2; d++)
-        cout << "  " << vectC[n]<< " " << vh[d][][vectC[n]];
-    cout << endl;
-}*/
 
 // --- Sensibility
 int comp(0);
@@ -148,7 +133,7 @@ for (int i=0; i<nbCapteursX; ++i)
 // -------------------------------------------------------
 errx = 10; erry = 10;
 real[int] Ue(Vh.ndof), dUx(Vh.ndof), dUy(Vh.ndof), lambda(Vh.ndof);
-while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 100))
+while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 5000))
 {
   ++comp;
   // Résolution du système linéaire
@@ -163,7 +148,7 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 100))
     i = (int(k/nbCapteursX)+1) * pasX;
     j = (k%nbCapteursX+1) * pasY;
     W[][vectC[k]] = u[][vectC[k]] - um(k);
-    plot (W, value=1, fill=1);
+    //plot (W, value=1, fill=1);
   }
 
 
@@ -171,38 +156,26 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 100))
   varf fi(u,v) = int2d(Th)( W*v )+ on(1,2,3,4,u=0);
   b = fi(0,Vh);
   lambda = At^-1*b;
-  lamb[] = lambda;
+  //lamb[] = lambda;
+  //plot (lamb, value=1, fill=1, wait=1);
 
-  plot (lamb, value=1, fill=1, wait=1);
 
   // Résolution du système linéaire
   bp = dgx;
-  plot (bp, value=1, fill=1, wait=1);
-  errx = lamb*bp;
-
+  //plot (bp, value=1, fill=1, wait=1);
+  errx = lambda'*bp[];
 
   bp = dgy;
-  plot (bp, value=1, fill=1, wait=1);
-  erry = lamb*bp;
+  //plot (bp, value=1, fill=1, wait=1);
+  erry = lambda'*bp[];
 
-  //Ue = At*lambda;                                                  // '
-  //errx = 0;
-  //for(int i=0; i< Vh.ndof; i++)
-  //{
-  //  errx = lambda(i)*K1(0);
-  //  erry = lambda(i)*K1(1);
-  //}
-  //errx = errx*errx + erry*erry;
-  //for(int i=0; i< Vh.ndof; i++)
-  //  errx = errx + Ue(is)*Ue(i);
-  //erry = errx;
-
-  xx0 -= 1 * errx;
-  yy0 -= 1 * erry;
+  xx0 -= 0.1 * errx;
+  yy0 -= 0.1 * erry;
 
   cout.flush;
-  //cout << " -- Iteration : " << comp << " ; Erreur (grad): " << sqrt(errx*errx+erry*erry) << "         \r";
-  cout << comp << "  " << errx << "  " << erry << endl;
+  cout << "  -- Iteration : " << comp << " ; Erreur (grad): " << sqrt(errx*errx+erry*erry) << "         \r";
+  //cout << comp << "  " << errx << "  " << erry << endl;
+  //cout << endl << " Position predite  : x0 = " << xx0 << " , y0 = " << yy0 << endl << endl;
 }
 cout << endl << " Position predite  : x0 = " << xx0 << " , y0 = " << yy0 << endl << endl;
 

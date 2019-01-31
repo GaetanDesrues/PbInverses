@@ -1,18 +1,13 @@
-// ----------------- Probleme de Laplace -----------------
-// Resolution de -Laplacien(u) = f avec u = 0 au bord
-// sur le carre [0,1]x[0,1] en elements finis P1 Lagrange
-
-// verbosity = 0;
 load "iovtk";
 
 // -------------------------------------------------------
-// Mise en place du probleme
+// Mise en place du problème
 // -------------------------------------------------------
-// --- Parametres initiales (x0,y0) et finales (xx0,yy0)
-real x0 (0.5), y0 (0.5);
-real xx0(0.1), yy0(0.9);
+
+real x0(0.5), y0(0.5); // Solution exacte
+real xx0(0.1), yy0(0.9); // Position de départ
 cout << endl << " Position initiale : x0 = " << xx0 << " , y0 = " << yy0 << endl;
-cout << " Position cherche  : x0 = " << x0 << " , y0 = " << y0 << endl << endl;
+cout << " Position cherchée  : x0 = " << x0 << " , y0 = " << y0 << endl << endl;
 
 {
   ofstream file("pos.dat");
@@ -21,11 +16,6 @@ cout << " Position cherche  : x0 = " << x0 << " , y0 = " << y0 << endl << endl;
 
 // Définition des bord du domaine de calcul
 int n = 100;
- //border G1(t=0,1) {x=t; y=0;};
- //border G2(t=0,1) {x=1; y=t;};
- //border G3(t=0,1) {x=1-t; y=1;};
- //border G4(t=0,1) {x=0; y=1-t;};
- //mesh Th = buildmesh(G1(n)+G2(n)+G3(n)+G4(n));
 mesh Th = square(n,n,[x,y]);
 
 // --- Définition de l'espace de discrétisation set des variables associées
@@ -34,7 +24,7 @@ Vh u,v,W,dI,bp;
 Vh lamb;
 Vh[int] vh(2);
 
-// --- Définition du second membre
+// --- Définition du second membre et des dérivées
 real K0;
 real[int] K1(2);
 real[int, int] K2(2,2);
@@ -52,6 +42,7 @@ func gg = K0 + K1(0)*(x-xx0)+K1(1)*(y-yy0)
 
 func dgx = -K1(0) - 2*(x-xx0)*K2(0,0) - (y-yy0)*K2(0,1) - (y-yy0)*K2(1,0);
 func dgy = -K1(1) - 2*(y-yy0)*K2(1,1) - (x-xx0)*K2(1,0) - (x-xx0)*K2(0,1);
+
 
 // --- Capteurs
 int nbCapteursX, nbCapteursY;
@@ -83,7 +74,6 @@ for (int n = 0; n < Vh.ndof; n++)
   }
 }
 
-// --- Sensibility
 int comp(0);
 real i, j;
 real errx, erry;
@@ -91,9 +81,8 @@ real eps = 0.00001;
 
 
 // -------------------------------------------------------
-// Creation de la matrice A et du second membre b
+// Création de la matrice A et du second membre b
 // -------------------------------------------------------
-// Definition d'une macro
 macro grad(u) [dx(u),dy(u)]                                           //
 
 // Matrice A
@@ -110,7 +99,7 @@ varf f(u,v) = int2d(Th)( g*v );
 //f[] = f(0,Vh);
 b = f(0,Vh);
 
-//Mat B
+//Matrice B
 func fK1 = K1(0); func fK2 = K1(1);
 Vh vecK1, vecK2;
 vecK1 = fK1; vecK2 = fK2;
@@ -120,9 +109,10 @@ B = [[A,vecK1[],vecK2[]]];
 Bt = B';                                                              // '
 
 // -------------------------------------------------------
-// Resolution de Au = b avec (x0,y0) et sauvegarde des um
+// Résolution de Au = b avec (x0,y0) et sauvegarde des um
 // -------------------------------------------------------
 real[int] Uth(Vh.ndof);
+
 // Résolution du système linéaire
 Uth = A^-1*b;
 u[] = Uth;
@@ -133,13 +123,12 @@ for (int i=0; i<nbCapteursX; ++i)
   for (int j=0; j<nbCapteursY; ++j)
   {
     um(i*nbCapteursX + j) = u((i+1)*pasX, (j+1)*pasY);
-    // cout << "la : " << (i+1)*pasX << " " << (j+1)*pasY << endl;
   }
 }
 
 
 // -------------------------------------------------------
-// Sensitivity Analisys
+// Analyse de sensibilité
 // -------------------------------------------------------
 errx = 10; erry = 10;
 real[int] Ue(Vh.ndof), dUx(Vh.ndof), dUy(Vh.ndof), lambda(Vh.ndof);
@@ -158,17 +147,12 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 5000))
     i = (int(k/nbCapteursX)+1) * pasX;
     j = (k%nbCapteursX+1) * pasY;
     W[][vectC[k]] = u[][vectC[k]] - um(k);
-    //plot (W, value=1, fill=1);
   }
-
-  //plot (W, value=1, fill=1);
 
   // Résolution du système linéaire
   varf fi(u,v) = int2d(Th)( W*v )+ on(1,2,3,4,u=0);
   b = fi(0,Vh);
   lambda = At^-1*b;
-  //lamb[] = lambda;
-  //plot (lamb, value=1, fill=1, wait=1);
 
 
   // Résolution du système linéaire
@@ -178,6 +162,7 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 5000))
   bp = dgy;
   erry = lambda'*bp[];
 
+  // Descente du gradient
   xx0 -= 2 * errx;
   yy0 -= 2 * erry;
 
@@ -186,13 +171,11 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 5000))
     file << xx0 << " " << yy0 << " " << endl;
   }
 
-
   cout.flush;
   cout << "  -- Iteration : " << comp << " ; Erreur (grad): " << sqrt(errx*errx+erry*erry) << "         \r";
-  //cout << comp << "  " << errx << "  " << erry << endl;
-  //cout << endl << " Position predite  : x0 = " << xx0 << " , y0 = " << yy0 << endl << endl;
+  //cout << endl << " Position prédite  : x0 = " << xx0 << " , y0 = " << yy0 << endl << endl;
 }
-cout << endl << " Position predite  : x0 = " << xx0 << " , y0 = " << yy0 << endl << endl;
+cout << endl << " Position prédite  : x0 = " << xx0 << " , y0 = " << yy0 << endl << endl;
 
 
 // -------------------------------------------------------

@@ -1,7 +1,7 @@
 Etude d'un problème inverse
-Objectif : Trouver les coordonées d'une source à partir de capteurs
+Objectif : Trouver la position d'une source à partir des données aux capteurs
 
-Rapport : 
+Rapport : Rapport_Final.pdf
 
 Langage : FreeFem++
 

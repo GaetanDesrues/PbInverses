@@ -9,18 +9,28 @@ load "iovtk";
 // Mise en place du probleme
 // -------------------------------------------------------
 // --- Parametres initiales (x0,y0) et finales (xx0,yy0)
-real x0 (0.9), y0 (0.5);
-real xx0(0.5), yy0(0.4);
+real x0 (0.5), y0 (0.5);
+real xx0(0.1), yy0(0.9);
 cout << endl << " Position initiale : x0 = " << xx0 << " , y0 = " << yy0 << endl;
 cout << " Position cherche  : x0 = " << x0 << " , y0 = " << y0 << endl << endl;
 
+{
+  ofstream file("pos.dat");
+  file << xx0 << " " << yy0 << " " << endl;
+}
+
 // Définition des bord du domaine de calcul
 int n = 100;
+ //border G1(t=0,1) {x=t; y=0;};
+ //border G2(t=0,1) {x=1; y=t;};
+ //border G3(t=0,1) {x=1-t; y=1;};
+ //border G4(t=0,1) {x=0; y=1-t;};
+ //mesh Th = buildmesh(G1(n)+G2(n)+G3(n)+G4(n));
 mesh Th = square(n,n,[x,y]);
 
 // --- Définition de l'espace de discrétisation set des variables associées
 fespace Vh(Th,P1);
-Vh u,v,W,bp;
+Vh u,v,W,dI,bp;
 Vh lamb;
 Vh[int] vh(2);
 
@@ -47,8 +57,8 @@ func dgy = -K1(1) - 2*(y-yy0)*K2(1,1) - (x-xx0)*K2(1,0) - (x-xx0)*K2(0,1);
 int nbCapteursX, nbCapteursY;
 real pasX, pasY;
 
-nbCapteursX = 19;
-nbCapteursY = 19;
+nbCapteursX = 1;
+nbCapteursY = 1;
 
 pasX = 1./(nbCapteursX+1);              // Distance entre
 pasY = 1./(nbCapteursY+1);              // les capteurs
@@ -77,7 +87,7 @@ for (int n = 0; n < Vh.ndof; n++)
 int comp(0);
 real i, j;
 real errx, erry;
-real eps = 0.000001;
+real eps = 0.00001;
 
 
 // -------------------------------------------------------
@@ -151,6 +161,7 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 5000))
     //plot (W, value=1, fill=1);
   }
 
+  //plot (W, value=1, fill=1);
 
   // Résolution du système linéaire
   varf fi(u,v) = int2d(Th)( W*v )+ on(1,2,3,4,u=0);
@@ -162,15 +173,19 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 5000))
 
   // Résolution du système linéaire
   bp = dgx;
-  //plot (bp, value=1, fill=1, wait=1);
   errx = lambda'*bp[];
 
   bp = dgy;
-  //plot (bp, value=1, fill=1, wait=1);
   erry = lambda'*bp[];
 
-  xx0 -= 0.1 * errx;
-  yy0 -= 0.1 * erry;
+  xx0 -= 2 * errx;
+  yy0 -= 2 * erry;
+
+  {
+    ofstream file("pos.dat", append);
+    file << xx0 << " " << yy0 << " " << endl;
+  }
+
 
   cout.flush;
   cout << "  -- Iteration : " << comp << " ; Erreur (grad): " << sqrt(errx*errx+erry*erry) << "         \r";
@@ -208,4 +223,9 @@ for (int i=0; i<nbCapteursX*nbCapteursY; ++i)
    }
    file << Th[i][0].x << " " << Th[i][0].y << " " << u[][Vh(i,0)] <<" \n\n\n";
  }
+}
+
+{
+  ofstream file("pos.dat", append);
+  file << endl << x0 << " " << y0 << " " << endl;
 }

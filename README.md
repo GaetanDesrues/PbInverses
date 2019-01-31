@@ -1,5 +1,6 @@
 Etude d'un problème inverse
 
+Utilisation : $ make sens ou $ make adjo
 
 Objectif : Trouver la position d'une source à partir des données aux capteurs
 

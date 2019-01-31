@@ -7,10 +7,10 @@ load "iovtk";
 real x0(0.5), y0(0.5); // Solution exacte
 real xx0(0.1), yy0(0.9); // Position de départ
 cout << endl << " Position initiale : x0 = " << xx0 << " , y0 = " << yy0 << endl;
-cout << " Position cherchée  : x0 = " << x0 << " , y0 = " << y0 << endl << endl;
+cout << " Position cherchee  : x0 = " << x0 << " , y0 = " << y0 << endl << endl;
 
 {
-  ofstream file("pos.dat");
+  ofstream file("output/pos.dat");
   file << xx0 << " " << yy0 << " " << endl;
 }
 
@@ -48,8 +48,8 @@ func dgy = -K1(1) - 2*(y-yy0)*K2(1,1) - (x-xx0)*K2(1,0) - (x-xx0)*K2(0,1);
 int nbCapteursX, nbCapteursY;
 real pasX, pasY;
 
-nbCapteursX = 1;
-nbCapteursY = 1;
+nbCapteursX = 19;
+nbCapteursY = 19;
 
 pasX = 1./(nbCapteursX+1);              // Distance entre
 pasY = 1./(nbCapteursY+1);              // les capteurs
@@ -163,11 +163,11 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 5000))
   erry = lambda'*bp[];
 
   // Descente du gradient
-  xx0 -= 2 * errx;
-  yy0 -= 2 * erry;
+  xx0 -= 1 * errx;
+  yy0 -= 1 * erry;
 
   {
-    ofstream file("pos.dat", append);
+    ofstream file("output/pos.dat", append);
     file << xx0 << " " << yy0 << " " << endl;
   }
 
@@ -175,14 +175,14 @@ while ((sqrt(errx*errx + erry*erry) > eps) && (comp < 5000))
   cout << "  -- Iteration : " << comp << " ; Erreur (grad): " << sqrt(errx*errx+erry*erry) << "         \r";
   //cout << endl << " Position prédite  : x0 = " << xx0 << " , y0 = " << yy0 << endl << endl;
 }
-cout << endl << " Position prédite  : x0 = " << xx0 << " , y0 = " << yy0 << endl << endl;
+cout << endl << " Position predite  : x0 = " << xx0 << " , y0 = " << yy0 << endl << endl;
 
 
 // -------------------------------------------------------
 // Sauvegarde des données des capteurs
 // -------------------------------------------------------
 // Trace les um dans un fichier capteurs.txt
-ofstream cap("capteurs.txt");
+ofstream cap("output/capteurs.txt");
 cap << "Nombre de capteurs suivant x : " << nbCapteursX << endl;
 cap << "Nombre de capteurs suivant y : " << nbCapteursY << endl;
 cap << "Sol depuis : x0 = (" << x0 << "," << y0 << ")" << endl << endl;
@@ -197,7 +197,7 @@ for (int i=0; i<nbCapteursX*nbCapteursY; ++i)
 //-------------------------------------------------------
 // Trace de la solution dans un fichier
 {
- ofstream file("sol.dat");
+ ofstream file("output/sol.dat");
  for(int i=0;i<Th.nt;i++)
  {
    for (int j=0; j<3; j++)
@@ -209,6 +209,6 @@ for (int i=0; i<nbCapteursX*nbCapteursY; ++i)
 }
 
 {
-  ofstream file("pos.dat", append);
+  ofstream file("output/pos.dat", append);
   file << endl << x0 << " " << y0 << " " << endl;
 }

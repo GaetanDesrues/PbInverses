@@ -1,15 +1,15 @@
 load "iovtk";
 
-ofstream erreurC("errcap.txt");
+ofstream erreurC("output/errcap.txt");
 
 // -------------------------------------------------------
 // Mise en place du probleme
 // -------------------------------------------------------
 
-real x0 (0.9), y0 (0.5);// Solutoin exacte
+real x0(0.9), y0(0.5);// Solution exacte
 real xx0(0.1), yy0(0.9);// Position de départ
 cout << endl << " Position initiale : x0 = " << xx0 << " , y0 = " << yy0 << endl;
-cout << " Position cherchée  : x0 = " << x0 << " , y0 = " << y0 << endl << endl;
+cout << " Position cherchee  : x0 = " << x0 << " , y0 = " << y0 << endl << endl;
 
 // Définition des bord du domaine de calcul
 int n = 100;
@@ -47,13 +47,13 @@ func dgy = -K1(1) - 2*(y-yy0)*K2(1,1) - (x-xx0)*K2(1,0) - (x-xx0)*K2(0,1);
 int nbCapteursX, nbCapteursY;
 real pasX, pasY;
 
-for (int nn = 20; nn>2; nn-=4)
+for (int nbCapteurs = 20; nbCapteurs<21; ++nbCapteurs)
 {
   xx0 = 0.1;
   yy0 = 0.9;
 
-  nbCapteursX = nn;
-  nbCapteursY = nn;
+  nbCapteursX = nbCapteurs;
+  nbCapteursY = nbCapteurs;
 
   pasX = 1./(nbCapteursX+1);              // Distance entre
   pasY = 1./(nbCapteursY+1);              // les capteurs
@@ -154,8 +154,8 @@ for (int nn = 20; nn>2; nn-=4)
     cout << " -- Iteration : " << comp << " ; Erreur (grad): " << sqrt(errx*errx+erry*erry) << "         \r";
     // cout << comp << "  " << errx << "  " << erry << endl;
   }
-  cout << endl << " Position prédite  : x0 = " << xx0 << " , y0 = " << yy0 << endl << endl;
-  erreurC << nn << "  " << comp << endl;//sqrt(abs(x0-xx0)^2+abs(y0-yy0)^2)
+  cout << endl << " Position predite  : x0 = " << xx0 << " , y0 = " << yy0 << endl << endl;
+  erreurC << nbCapteurs << "  " << comp << endl;//sqrt(abs(x0-xx0)^2+abs(y0-yy0)^2)
 
 }
 
@@ -163,7 +163,7 @@ for (int nn = 20; nn>2; nn-=4)
 // Sauvegarde des données des capteurs
 // -------------------------------------------------------
 // Trace les um dans un fichier capteurs.txt
-// ofstream cap("capteurs.txt");
+// ofstream cap("output/capteurs.txt");
 // cap << "Nombre de capteurs suivant x : " << nbCapteursX << endl;
 // cap << "Nombre de capteurs suivant y : " << nbCapteursY << endl;
 // cap << "Sol depuis : x0 = (" << x0 << "," << y0 << ")" << endl << endl;
@@ -173,12 +173,11 @@ for (int nn = 20; nn>2; nn-=4)
 // }
 //
 //
-// // -------------------------------------------------------
-// // Sauvegarde de la solution pour gnuplot
-// //-------------------------------------------------------
-// // Trace de la solution dans un fichier
+// -------------------------------------------------------
+// Sauvegarde de la solution pour gnuplot
+//-------------------------------------------------------
 // {
-//   ofstream file("sol.dat");
+//   ofstream file("output/sol.dat");
 //   for(int i=0;i<Th.nt;i++)
 //   {
 //     for (int j=0; j<3; j++)

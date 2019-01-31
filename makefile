@@ -1,11 +1,10 @@
 FF = FreeFem++
 
-
-all :
-	$(FF) -v 0 main.edp
-
 sens :
 	$(FF) -v 0 sensibility.edp
+
+adjo :
+	$(FF) -v 0 eqAdjointe.edp
 
 plot :
 	gnuplot -p "plot.gnu"

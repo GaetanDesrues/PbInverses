@@ -128,7 +128,7 @@ for (int i=0; i<nbCapteursX; ++i)
 
 
 // -------------------------------------------------------
-// Analyse de sensibilité
+// Méthode de l'équation adjointe
 // -------------------------------------------------------
 errx = 10; erry = 10;
 real[int] Ue(Vh.ndof), dUx(Vh.ndof), dUy(Vh.ndof), lambda(Vh.ndof);

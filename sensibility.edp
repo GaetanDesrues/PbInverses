@@ -1,8 +1,3 @@
-// ----------------- Probleme de Laplace -----------------
-// Resolution de -Laplacien(u) = f avec u = 0 au bord
-// sur le carre [0,1]x[0,1] en elements finis P1 Lagrange
-
-verbosity = 0;
 load "iovtk";
 
 ofstream erreurC("errcap.txt");
@@ -10,10 +5,11 @@ ofstream erreurC("errcap.txt");
 // -------------------------------------------------------
 // Mise en place du probleme
 // -------------------------------------------------------
-// --- Parametres initiales (x0,y0) et finales (xx0,yy0)
-real x0 (0.9), y0 (0.5);
-real xx0(0.1), yy0(0.9);
-cout << endl << " Position initiale : x0 = " << x0 << " , y0 = " << y0 << endl;
+
+real x0 (0.9), y0 (0.5);// Solutoin exacte
+real xx0(0.1), yy0(0.9);// Position de départ
+cout << endl << " Position initiale : x0 = " << xx0 << " , y0 = " << yy0 << endl;
+cout << " Position cherchée  : x0 = " << x0 << " , y0 = " << y0 << endl << endl;
 
 // Définition des bord du domaine de calcul
 int n = 100;
@@ -75,7 +71,6 @@ for (int nn = 20; nn>2; nn-=4)
   // -------------------------------------------------------
   // Creation de la matrice A et du second membre b
   // -------------------------------------------------------
-  // Definition d'une macro
   macro grad(u) [dx(u),dy(u)]                                               //
 
   // Matrice A
@@ -105,13 +100,12 @@ for (int nn = 20; nn>2; nn-=4)
     for (int j=0; j<nbCapteursY; ++j)
     {
       um(i*nbCapteursX + j) = u((i+1)*pasX, (j+1)*pasY);
-      // cout << "la : " << (i+1)*pasX << " " << (j+1)*pasY << endl;
     }
   }
 
 
   // -------------------------------------------------------
-  // Sensitivity Analisys
+  // Analyse de sensibilité
   // -------------------------------------------------------
   errx = 10; erry = 10;
   real[int] Ue(Vh.ndof), dUx(Vh.ndof), dUy(Vh.ndof);
@@ -144,8 +138,6 @@ for (int nn = 20; nn>2; nn-=4)
       j = (k%nbCapteursX+1) * pasY;
       errx = errx + (u(i,j) - um(k)) * ux(i,j);
       erry = erry + (u(i,j) - um(k)) * uy(i,j);
-      // gradUx(k) = (u(i,j) - um(k)) * ux(i,j);
-      // gradUy(k) = (u(i,j) - um(k)) * uy(i,j);
     }
     //plot(u,fill=1,value=1, wait=);
 
@@ -154,6 +146,7 @@ for (int nn = 20; nn>2; nn-=4)
     // real ty = erry^2/(A*gradUy);
     // cout << tx << "  " << ty << endl;
 
+    // Descente du gradient
     xx0 -= 1 * errx;
     yy0 -= 1 * erry;
 
@@ -161,7 +154,7 @@ for (int nn = 20; nn>2; nn-=4)
     cout << " -- Iteration : " << comp << " ; Erreur (grad): " << sqrt(errx*errx+erry*erry) << "         \r";
     // cout << comp << "  " << errx << "  " << erry << endl;
   }
-  cout << endl << " Position predite  : x0 = " << xx0 << " , y0 = " << yy0 << endl << endl;
+  cout << endl << " Position prédite  : x0 = " << xx0 << " , y0 = " << yy0 << endl << endl;
   erreurC << nn << "  " << comp << endl;//sqrt(abs(x0-xx0)^2+abs(y0-yy0)^2)
 
 }

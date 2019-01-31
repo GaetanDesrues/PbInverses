@@ -6,4 +6,4 @@ Rapport : Rapport_Final.pdf
 Langage : FreeFem++
 
 - Méthode de l'analyse de sensibilité : sensibility.edp
-- Méthode de l'équation adjointe : eqAdjointe3.edp
+- Méthode de l'équation adjointe : eqAdjointe.edp
